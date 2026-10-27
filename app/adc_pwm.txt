@@ -1,0 +1,18 @@
+# Documentación del TP - Control de Brillo de LED mediante ADC y PWM
+Proyecto: tdse-tp4_03-adc_pwm
+Placa: MB1136-F103RB-C05 & A225301026
+
+
+## 1. Configuración de Hardware (STM32CubeMX)
+- ADC1: Se habilitó un canal para leer la tensión analógica del potenciómetro. Su conversión trabaja con una resolución de 12 bits (entregando valores en un rango de 0 a 4095).
+- TIM3_CH1: Se configuró el Timer 3 en modo PWM Generation. Se estableció el parámetro "Counter Period" en 65535 para que coincida con la macro `PERIOD` del firmware y maximizar la suavidad del brillo.
+
+## 2. Argumentación Lógica del Firmware
+El sistema hace uso de una arquitectura basada en tareas separadas conectadas a través de la memoria (estructura `shared_data`).
+
+- En `task_adc.c`: 
+  La tarea realiza lecturas recurrentes del conversor analógico a digital usando una técnica de sondeo o polling bloqueante adaptada (`ADC_Poll_Read`). Inmediatamente después de recibir el muestreo, el valor se guarda en `shared_data->adc_value` y se enciende el flag booleano `adc_end_of_conversion`.
+
+- En `task_pwm.c`:
+  El sistema aguarda a que el evento del ADC ocurra chequeando la bandera. Cuando hay un dato nuevo, ejecuta un mapeo lineal (regla de tres) traduciendo la cota de entrada [0 - 4095] a la cota de salida del ciclo de trabajo PWM [0 - 65535]. Por último, inyecta este valor calculado a la función generadora `setPWM()`, cerrando el bucle de control.
+
